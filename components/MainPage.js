@@ -57,7 +57,7 @@ class MainPage extends Component {
     this.state = {
       isReady: true,
       liveButtonStyle: this.getLiveButtonStyle(true),   // [styles.liveButton, styles.readyLiveButton],
-      liveText: this.getLiveTextStyle(true),            // [styles.liveText, styles.readyLiveText],
+      liveTextStyle: this.getLiveTextStyle(true),            // [styles.liveText, styles.readyLiveText],
       shouldAdDisplay: false,
       dontThinkIndex: -1,
       notLivingNotificationCount: 0,
@@ -154,13 +154,10 @@ class MainPage extends Component {
     if (this.vibrateTimeoutID) {
       this.clearInterval(this.vibrateTimeoutID); // Clear previous timer that would fire request
     }
-    // Potentially only turn this on after two times? Condition wraps this block
-    // Use this.state.notLivingNotificationCount
     this.vibrateTimeoutID = this.setInterval(
       () => {
         // only do this if we've already lived some moments
-        if (this.props.momentCount > 4)
-        {
+        if (this.props.momentCount > 4 && this.state.notLivingNotificationCount < 2) {
           Vibration.vibrate();
           Alert.alert(
             'Live in The Moment!',
@@ -181,7 +178,7 @@ class MainPage extends Component {
       () => {
         this.setState({
           liveButtonStyle: this.getLiveButtonStyle(true),   // [styles.liveButton, styles.readyLiveButton],
-          liveText: this.getLiveTextStyle(true),            // [styles.liveText, styles.readyLiveText],
+          liveTextStyle: this.getLiveTextStyle(true),            // [styles.liveText, styles.readyLiveText],
           isReady: true,
         });
       },
@@ -189,7 +186,7 @@ class MainPage extends Component {
     );
     this.setState({
       liveButtonStyle: this.getLiveButtonStyle(false),    // [styles.liveButton, styles.notReadyLiveButton],
-      liveText: this.getLiveTextStyle(false),             // [styles.liveText, styles.notReadyLiveText],
+      liveTextStyle: this.getLiveTextStyle(false),             // [styles.liveText, styles.notReadyLiveText],
       isReady: false,
     });
     Animated.sequence([
@@ -249,7 +246,7 @@ class MainPage extends Component {
               scale: this.liveGrowValue
             }]}]}
           >
-            <Text style={this.state.liveText}>LIVE</Text>
+            <Text style={this.state.liveTextStyle}>LIVE</Text>
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -305,7 +302,6 @@ class MainPage extends Component {
   }
 
   render() {
-    console.log("rendering");
     return (
       <View style={{flex: 1}}>
         <View style={styles.bgwrap}>

@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
   adImage: {
     margin: IMAGE_MARGIN,
     width: SCREEN_WIDTH - IMAGE_MARGIN * 2,
+    height: SCREEN_WIDTH - IMAGE_MARGIN * 2,
     alignSelf: 'center',
   },
   cancelButtonView: {
@@ -76,7 +77,7 @@ export default class MomentNotification extends Component {
   componentWillReceiveProps(props) {
 
     if (this.props.shouldDisplay !== props.shouldDisplay && props.shouldDisplay) {
-      console.log('Will show ad at index: ' + this.state.currentAdIndex+1);
+      console.log('Showing ad#' + (this.state.currentAdIndex+1));
       this.setState({
         currentAdIndex: this.state.currentAdIndex+1,
       });

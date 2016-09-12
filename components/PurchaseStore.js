@@ -10,6 +10,7 @@ import {
   Image,
   TouchableOpacity,
   Modal,
+  ScrollView,
 } from 'react-native';
 
 import { connect } from 'react-redux';
@@ -80,18 +81,23 @@ const purchasables  = [
     purchased: false,
   },
   {
-    description: "Button V-Neck",
+    description: "Namaste Mode",
     price: 500,
     purchased: false,
   },
   {
-    description: "Namaste Mode",
+    description: "Button V-Neck",
     price: 1000,
     purchased: false,
   },
   {
-    description: "Privileged Mode",
+    description: "YOLO Mode",
     price: 5000,
+    purchased: false,
+  },
+  {
+    description: "Couple Mode",
+    price: 6900,
     purchased: false,
   },
 ];
@@ -151,14 +157,14 @@ class PurchaseStore extends Component {
 
   render() {
     return (
-      <View style={styles.container}>
+      <ScrollView style={styles.container}>
         <View style={styles.title}>
           <Text style={styles.h2}>
             {'Store'.toUpperCase()}
           </Text>
         </View>
         {this.renderStoreItems()}
-      </View>
+      </ScrollView>
     );
   }
 
