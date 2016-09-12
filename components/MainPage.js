@@ -32,17 +32,18 @@ import getAchievementForMomentCount from '../data/achievements';
 
 import AdModal from './AdModal';
 
-const VIBRATION_INTERVAL = 8000;
+const VIBRATION_INTERVAL = 9000;
 
-const LIVE_INTERVAL = 3000;
-
+const LIVE_INTERVAL = 2000;
 
 import { main_page_styles } from "../lib/styles"
 const styles = main_page_styles;
 
 class MainPage extends Component {
+
   static propTypes = {
     momentCount: PropTypes.number.isRequired,
+    purchasedLuxuryLiveButton: PropTypes.bool.isRequired,
     actions: PropTypes.shape({
       updateMomentsFromCache: PropTypes.func.isRequired,
       liveInTheMoment: PropTypes.func.isRequired,
@@ -54,46 +55,50 @@ class MainPage extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      dontThinkIndex: -1,
-      liveCircleStyle: [styles.liveCircle, styles.readyLiveCircle],
-      liveText: [styles.liveText, styles.readyLiveText],
       isReady: true,
+      liveButtonStyle: this.getLiveButtonStyle(true),   // [styles.liveButton, styles.readyLiveButton],
+      liveText: this.getLiveTextStyle(true),            // [styles.liveText, styles.readyLiveText],
       shouldAdDisplay: false,
+      dontThinkIndex: -1,
+      notLivingNotificationCount: 0,
     };
     this.liveGrowValue = new Animated.Value(1);
     this.momentCountGrowValue = new Animated.Value(1);
   }
 
-  componentWillMount() {
-
-  }
-
   componentWillReceiveProps(props) {
     const { momentCount } = props;
     LayoutAnimation.spring();
-    // Rules for annoying stuff
+
+    // When starting out, ignore stuff
     if (momentCount === 0) {
       return;
     }
+
+    // Every three moments, give em something to not think about
     if (momentCount % 3 == 0) {
       this.setState({
         dontThinkIndex: this.state.dontThinkIndex+1,
         dontThink: dontThinkList[this.state.dontThinkIndex+1],
       });
-    }
-    else {
+    } else {  // reset otherwise so the don't think message disappears
       this.setState({ dontThink: ''});
     }
+
+    // Roughly every 5 achievements, you get a top notification indicating so
     let achievement = getAchievementForMomentCount(momentCount);
     if (achievement) {
-      this.setState({achievement_title:achievement, achievement_message:`Congratulations on living in ${momentCount} moments!` })
+      this.setState({ achievement_title: achievement, achievement_message: `Congratulations on living in ${momentCount} moments!` })
+    } else if (momentCount > 1) { // confused about this
+      this.setState({ achievement_message:'', achievement_title:'' })
     }
-    else if (momentCount>1) {
-      this.setState({achievement_message:'', achievement_title:'' })
-    }
-    this.setState({
-      shouldAdDisplay: momentCount % 8 === 0,
-    });
+
+    // The first ad appears after 9 moments, and then every 6 thereafter
+    let shouldAdDisplay =
+      (momentCount === 8) ||
+      (momentCount === 16) ||
+      (momentCount > 16 && (momentCount - 16) % 6 === 0);
+    this.setState({ shouldAdDisplay });
   }
 
   componentWillUnmount() {
@@ -105,35 +110,87 @@ class MainPage extends Component {
     this.scheduleNoLivingVibration();
   }
 
+  getLiveButtonStyle(ready) {
+    let liveButtonStyle = [];
+    if (this.props.purchasedLuxuryLiveButton) {
+      liveButtonStyle.push(styles.luxuryLiveButton);
+      if (ready) {
+        liveButtonStyle.push(styles.readyLuxuryLiveButton)
+      } else {
+        liveButtonStyle.push(styles.notReadyLuxuryLiveButton)
+      }
+    } else {
+      liveButtonStyle.push(styles.liveButton);
+      if (ready) {
+        liveButtonStyle.push(styles.readyLiveButton)
+      } else {
+        liveButtonStyle.push(styles.notReadyLiveButton)
+      }
+    }
+    return liveButtonStyle;
+  }
+
+  getLiveTextStyle(ready) {
+    let liveTextStyle = [];
+    if (this.props.purchasedLuxuryLiveButton) {
+      liveTextStyle.push(styles.luxuryLiveText);
+      if (ready) {
+        liveTextStyle.push(styles.readyLuxuryLiveText)
+      } else {
+        liveTextStyle.push(styles.notReadyLuxuryLiveText)
+      }
+    } else {
+      liveTextStyle.push(styles.liveText);
+      if (ready) {
+        liveTextStyle.push(styles.readyLiveText)
+      } else {
+        liveTextStyle.push(styles.notReadyLiveText)
+      }
+    }
+    return liveTextStyle;
+  }
 
   scheduleNoLivingVibration = () => {
     if (this.vibrateTimeoutID) {
       this.clearInterval(this.vibrateTimeoutID); // Clear previous timer that would fire request
     }
-    this.vibrateTimeoutID = this.setInterval(() => {
-      // only do this if we've already lived some moments
-      if (this.props.momentCount<4){return}
-      Vibration.vibrate();
-      Alert.alert('Live in The Moment!',  "You don't seem to be living in The Moment right now.")
-    }, VIBRATION_INTERVAL);
+    // Potentially only turn this on after two times? Condition wraps this block
+    // Use this.state.notLivingNotificationCount
+    this.vibrateTimeoutID = this.setInterval(
+      () => {
+        // only do this if we've already lived some moments
+        if (this.props.momentCount > 4)
+        {
+          Vibration.vibrate();
+          Alert.alert(
+            'Live in The Moment!',
+            "You don't seem to be living in The Moment right now."
+          );
+          this.setState({ notLivingNotificationCount: this.state.notLivingNotificationCount+1 })
+        }
+      },
+      VIBRATION_INTERVAL
+    );
   }
 
-  resetReadyLiveCircle = () => {
+  resetReadyLiveButton = () => {
     if (this.resetReadyTimeoutID) {
       this.clearTimeout(this.resetReadyTimeoutID); // Clear previous timer that would fire request
     }
-    this.resetReadyTimeoutID = this.setTimeout(() => {
-      this.setState({
-        liveCircleStyle: [styles.liveCircle, styles.readyLiveCircle],
-        liveText: [styles.liveText, styles.readyLiveText],
-        isReady: true,
-      });
-    }, LIVE_INTERVAL);
+    this.resetReadyTimeoutID = this.setTimeout(
+      () => {
+        this.setState({
+          liveButtonStyle: this.getLiveButtonStyle(true),   // [styles.liveButton, styles.readyLiveButton],
+          liveText: this.getLiveTextStyle(true),            // [styles.liveText, styles.readyLiveText],
+          isReady: true,
+        });
+      },
+      LIVE_INTERVAL
+    );
     this.setState({
-      liveCircleStyle: [styles.liveCircle, styles.notReadyLiveCircle],
-      liveText: [styles.liveText, styles.notReadyLiveText],
+      liveButtonStyle: this.getLiveButtonStyle(false),    // [styles.liveButton, styles.notReadyLiveButton],
+      liveText: this.getLiveTextStyle(false),             // [styles.liveText, styles.notReadyLiveText],
       isReady: false,
-      start: false,
     });
     Animated.sequence([
       Animated.spring(this.liveGrowValue, { toValue: 0.7 }),
@@ -152,7 +209,7 @@ class MainPage extends Component {
   liveInTheMoment = () => {
     if (this.state.isReady) {
       this.updateMomentCounter();
-      this.resetReadyLiveCircle();
+      this.resetReadyLiveButton();
       this.scheduleNoLivingVibration();
       this.props.actions.liveInTheMoment();
     }
@@ -163,7 +220,6 @@ class MainPage extends Component {
         <Text style={styles.topMessageTitleText}>🏆 {this.state.achievement_title}</Text>
         <Text style={styles.topMessageSubtitleText}>{this.state.achievement_message}</Text>
       </View> : <View></View>)
-    console.log(this.state.dontThink )
     var dontThink;
     if(this.state.dontThink){
       dontThink = (
@@ -189,7 +245,7 @@ class MainPage extends Component {
     return (
       <View style={styles.centerContainer}>
         <TouchableOpacity onPress={this.liveInTheMoment}>
-          <Animated.View style={[this.state.liveCircleStyle, { transform: [{
+          <Animated.View style={[this.state.liveButtonStyle, { transform: [{
               scale: this.liveGrowValue
             }]}]}
           >
@@ -249,20 +305,21 @@ class MainPage extends Component {
   }
 
   render() {
+    console.log("rendering");
     return (
       <View style={{flex: 1}}>
-      <View style={styles.bgwrap}><Image source={require('../assets/bg.jpg')} style={styles.bg} /></View>
+        <View style={styles.bgwrap}>
+          <Image source={require('../assets/bg.jpg')} style={styles.bg} />
+        </View>
         <View style={styles.topLevelContainer}>
           {this.renderTopMessage()}
           {this.renderLive()}
           {this.renderBottomBar()}
         </View>
-
         <AdModal
           shouldDisplay={this.state.shouldAdDisplay}
           onDismiss={ () => { this.setState({shouldAdDisplay: false}); } }
         />
-
       </View>
     );
   }
@@ -272,7 +329,10 @@ class MainPage extends Component {
 Object.assign(MainPage.prototype, TimerMixin);
 
 function mapStateToProps(state) {
-  return { momentCount: state.count };
+  return {
+    momentCount: state.count,
+    purchasedLuxuryLiveButton: state.purchasedLuxuryLiveButton,
+  };
 }
 
 function mapDispatchToProps(dispatch) {
